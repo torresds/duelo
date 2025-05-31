@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="ufjf.trabalho01.MainUIController">
+
+    <right>
+        <VBox spacing="10" alignment="TOP_CENTER" style="-fx-background-color: #1e1e1e;">
+            <children>
+                <Label fx:id="lblNome" text="Personagem: -" style="-fx-text-fill: white; -fx-font-size: 16px;" />
+                <Label fx:id="lblVida" text="PV: 100" style="-fx-text-fill: white;" />
+                <Label fx:id="lblAtaque" text="Ataque: 0" style="-fx-text-fill: white;" />
+                <Label fx:id="lblDefesa" text="Defesa: 0" style="-fx-text-fill: white;" />
+                <Label fx:id="lblAlcance" text="Alcance: 0" style="-fx-text-fill: white;" />
+
+                <Separator />
+
+                <Button fx:id="btnMover" text="Mover" prefWidth="150" />
+                <Button fx:id="btnAtacar" text="Atacar" prefWidth="150" />
+                <Button fx:id="btnDefender" text="Defender" prefWidth="150" />
+                <Button fx:id="btnPoder" text="Poder Especial" prefWidth="150" />
+
+                <Separator />
+
+                <Label fx:id="lblLog" text="Aguardando ação..." wrapText="true"
+                       style="-fx-text-fill: lightgray;" prefWidth="180" />
+            </children>
+            <padding>
+                <Insets top="15" right="15" bottom="15" left="15"/>
+            </padding>
+        </VBox>
+    </right>
+
+    <center>
+        <StackPane fx:id="gameRoot" style="-fx-background-color: black;" />
+    </center>
+
+</BorderPane>

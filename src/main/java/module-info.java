@@ -1,0 +1,9 @@
+module ufjf.trabalho01 {
+    requires javafx.controls;
+    requires javafx.fxml;
+
+    requires com.almasb.fxgl.all;
+
+    opens ufjf.trabalho01 to javafx.fxml;
+    exports ufjf.trabalho01;
+}
