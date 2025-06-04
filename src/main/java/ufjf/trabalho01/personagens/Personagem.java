@@ -1,15 +1,17 @@
+package ufjf.trabalho01.personagens;
+
 public abstract class Personagem {
-    private String nome;
-    private int pontosDeVida = 100;
-    private int forcaDeAtaque;
-    private int forcaDeDefesa;
-    private int alcanceDeAtaque;
-    private int posicaoX;
-    private int posicaoY;
- 
+    protected String nome;
+    protected int pontosDeVida = 100;
+    protected int forcaDeAtaque;
+    protected int forcaDeDefesa;
+    protected int alcanceDeAtaque;
+    protected int posicaoX;
+    protected int posicaoY;
+    protected String tipo;
 
 
-    public Personagem(String nome, int forcaDeAtaque, 
+    public Personagem(String tipo, String nome, int forcaDeAtaque,
                      int forcaDeDefesa, int alcanceDeAtaque) {
         this.nome = nome;
         this.forcaDeAtaque = forcaDeAtaque;
@@ -18,8 +20,10 @@ public abstract class Personagem {
     }
 
     
-    public abstract void usarPoderEspecial();
-     public abstract String getTipo();
+     public abstract void usarPoderEspecial(Personagem oponente);
+     public String getTipo() {
+         return this.tipo;
+     }
 
 
     public void mover(int novaX, int novaY) {
