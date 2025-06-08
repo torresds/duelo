@@ -52,7 +52,7 @@ public class GridManager {
         Node view = personagem.getView();
         StackPane cell = this.getCell(x,y);
         cell.getChildren().add(view);
-
+        personagens.put(pos, personagem);
         view.setTranslateX(0);
         view.setTranslateY(0);
         return true;
@@ -78,6 +78,7 @@ public class GridManager {
 
         // Testes (remover)
         adicionarPersonagem(new Mago("Mago"), 0, 0);
+        adicionarPersonagem(new Mago("Mago"), 5, 5);
         adicionarPersonagem(new Mago("Mago"), 5, 5);
     }
 
