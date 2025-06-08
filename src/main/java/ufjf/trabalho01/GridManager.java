@@ -1,20 +1,62 @@
 package ufjf.trabalho01;
 
-import com.almasb.fxgl.dsl.FXGL;
+import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import javafx.scene.text.Font;
+import ufjf.trabalho01.personagens.Mago;
+import ufjf.trabalho01.personagens.Personagem;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
+
 public class GridManager {
 
-    private static final int GRID_SIZE = 10;
-    private static final int CELL_SIZE = 48;
+    public static final int GRID_SIZE = 10;
+    public static final int CELL_SIZE = 48;
 
     private StackPane[][] cells = new StackPane[GRID_SIZE][GRID_SIZE];
+    private Map<Posicao, Personagem> personagens = new HashMap<>();
+    private static class Posicao {
+        int x,y;
+        Posicao(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof  Posicao)) return false;
+            Posicao p = (Posicao) o;
+            return p.x == this.x && p.y == this.y;
+        }
+        @Override
+        public int hashCode() {
+            return 31 * x + y;
+        }
+    }
+
+    public boolean adicionarPersonagem(Personagem personagem, int x, int y) {
+        if (x < 0 || x > GRID_SIZE  || y < 0 || y >= GRID_SIZE) {
+            return false;
+        }
+
+        Posicao pos = new Posicao(x,y);
+        if (personagens.containsKey(pos)) return false;
+        personagem.setPosicaoX(x);
+        personagem.setPosicaoY(y);
+        Node view = personagem.getView();
+        StackPane cell = this.getCell(x,y);
+        cell.getChildren().add(view);
+
+        view.setTranslateX(0);
+        view.setTranslateY(0);
+        return true;
+    }
 
     public void generateGrid() {
         double gridWidth = GRID_SIZE * CELL_SIZE;
@@ -33,6 +75,10 @@ public class GridManager {
                 cells[y][x] = cell;
             }
         }
+
+        // Testes (remover)
+        adicionarPersonagem(new Mago("Mago"), 0, 0);
+        adicionarPersonagem(new Mago("Mago"), 5, 5);
     }
 
 
@@ -55,4 +101,5 @@ public class GridManager {
     public StackPane getCell(int x, int y) {
         return cells[y][x];
     }
+
 }

@@ -4,6 +4,7 @@ import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import ufjf.trabalho01.personagens.Personagem;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 

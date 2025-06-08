@@ -6,4 +6,6 @@ module ufjf.trabalho01 {
 
     opens ufjf.trabalho01 to javafx.fxml;
     exports ufjf.trabalho01;
+    exports ufjf.trabalho01.personagens;
+    opens ufjf.trabalho01.personagens to javafx.fxml;
 }
