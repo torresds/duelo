@@ -21,5 +21,4 @@ public abstract class Player {
         return personagem;
     }
 
-    public abstract Acao escolherAcao();
 }

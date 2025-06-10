@@ -1,9 +1,12 @@
 package ufjf.trabalho01;
 
+import static com.almasb.fxgl.dsl.FXGL.getGameScene;
+
+import com.almasb.fxgl.app.scene.GameView;
 import javafx.scene.Node;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import javafx.scene.text.Font;
 import ufjf.trabalho01.personagens.Mago;
@@ -58,29 +61,45 @@ public class GridManager {
         return true;
     }
 
-    public void generateGrid() {
-        double gridWidth = GRID_SIZE * CELL_SIZE;
-        double gridHeight = GRID_SIZE * CELL_SIZE;
+    public void generateGrid(GridPane grid) {
+        grid.getChildren().clear();
+        grid.getColumnConstraints().clear();
+        grid.getRowConstraints().clear();
 
-        double offsetX = (getAppWidth() - gridWidth) / 2.0;
-        double offsetY = (getAppHeight() - gridHeight) / 2.0;
+        for (int i = 0; i < GRID_SIZE; i++) {
+            ColumnConstraints cc = new ColumnConstraints(CELL_SIZE);
+            cc.setHgrow(Priority.NEVER);
+            grid.getColumnConstraints().add(cc);
+
+            RowConstraints rc = new RowConstraints(CELL_SIZE);
+            rc.setVgrow(Priority.NEVER);
+            grid.getRowConstraints().add(rc);
+        }
 
         for (int y = 0; y < GRID_SIZE; y++) {
             for (int x = 0; x < GRID_SIZE; x++) {
-                StackPane cell = createCell(x, y);
-                cell.setTranslateX(offsetX + x * CELL_SIZE);
-                cell.setTranslateY(offsetY + y * CELL_SIZE);
+                Rectangle background = new Rectangle(CELL_SIZE, CELL_SIZE);
+                background.setArcWidth(6);
+                background.setArcHeight(6);
+                background.setStroke(Color.DARKSLATEGRAY);
+                background.setFill((x + y) % 2 == 0
+                        ? Color.web("#2e2e2e")
+                        : Color.web("#3e3e3e"));
 
-                getGameScene().addUINode(cell);
+                Text coord = new Text(x + "," + y);
+                coord.setFont(Font.font("Consolas", 10));
+                coord.setFill(Color.GRAY);
+
+                StackPane cell = new StackPane(background, coord);
+                cell.setPrefSize(CELL_SIZE, CELL_SIZE);
+
                 cells[y][x] = cell;
+
+                grid.add(cell, x, y);
             }
         }
-
-        // Testes (remover)
-        adicionarPersonagem(new Mago("Mago"), 0, 0);
-        adicionarPersonagem(new Mago("Mago"), 5, 5);
-        adicionarPersonagem(new Mago("Mago"), 5, 5);
     }
+
 
 
     private StackPane createCell(int x, int y) {
@@ -103,4 +122,29 @@ public class GridManager {
         return cells[y][x];
     }
 
+    public boolean movePersonagem(Personagem p, int newX, int newY) {
+        if (newX < 0 || newX >= GRID_SIZE
+                || newY < 0 || newY >= GRID_SIZE)
+            return false;
+
+        Posicao origem = new Posicao(p.getPosicaoX(), p.getPosicaoY());
+        Posicao destino= new Posicao(newX, newY);
+        if (personagens.containsKey(destino))
+            return false;
+
+        cells[origem.y][origem.x].getChildren().remove(p.getView());
+        cells[newY][newX].getChildren().add(p.getView());
+
+        personagens.remove(origem);
+        personagens.put(destino, p);
+        p.setPosicaoX(newX);
+        p.setPosicaoY(newY);
+        return true;
+    }
+
+    public void clearHighlights() {
+        for (int y = 0; y < GRID_SIZE; y++)
+            for (int x = 0; x < GRID_SIZE; x++)
+                cells[y][x].setStyle("");
+    }
 }
