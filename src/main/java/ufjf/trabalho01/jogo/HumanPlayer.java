@@ -31,8 +31,7 @@ public class HumanPlayer extends Player {
         int dist = personagem.calcularDistancia(oponente.getPersonagem());
         if (dist > personagem.getAlcanceDeAtaque())
             return -1;
-        int dano = Math.max(0,
-                personagem.getForcaDeAtaque() - oponente.getPersonagem().getForcaDeDefesa());
+        int dano = oponente.getPersonagem().diminuirDefesa(personagem.getForcaDeAtaque());
         oponente.getPersonagem().receberDano(dano);
         return dano;
     }

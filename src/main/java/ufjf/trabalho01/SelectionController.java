@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import ufjf.trabalho01.jogo.BotPlayer;
 import ufjf.trabalho01.jogo.HumanPlayer;
 import ufjf.trabalho01.jogo.Player;
 import ufjf.trabalho01.personagens.Arqueiro;
@@ -11,6 +12,7 @@ import ufjf.trabalho01.personagens.Guerreiro;
 import ufjf.trabalho01.personagens.Mago;
 import ufjf.trabalho01.personagens.Personagem;
 
+import java.util.Random;
 import java.util.function.BiConsumer;
 
 public class SelectionController {
@@ -30,7 +32,7 @@ public class SelectionController {
     @FXML
     public void initialize() {
         cbClass1.getItems().addAll("Arqueiro", "Guerreiro", "Mago");
-        cbClass2.getItems().addAll("Arqueiro", "Guerreiro", "Mago");
+        cbClass2.getItems().addAll("Arqueiro", "Guerreiro", "Mago", "Bot");
         cbClass1.getSelectionModel().selectFirst();
         cbClass2.getSelectionModel().selectFirst();
     }
@@ -45,15 +47,25 @@ public class SelectionController {
                     .showAndWait();
             return;
         }
-
+        
         Player p1 = new HumanPlayer(nome1);
-        Player p2 = new HumanPlayer(nome2);
-
         Personagem c1 = createCharacter(cbClass1.getValue(), nome1);
-        Personagem c2 = createCharacter(cbClass2.getValue(), nome2);
-
         p1.setPersonagem(c1);
-        p2.setPersonagem(c2);
+
+        Player p2;
+        Personagem c2;
+        if (cbClass2.getValue() == "Bot"){
+            p2 = new BotPlayer(nome2,c1);
+            int indiceAleatorio = new Random().nextInt(3);
+            c2 = createCharacter(cbClass1.getItems().get(indiceAleatorio), nome2);
+            p2.setPersonagem(c2);
+        }        
+        
+        else {
+            c2 = createCharacter(cbClass2.getValue(), nome2);
+            p2 = new HumanPlayer(nome2);
+            p2.setPersonagem(c2);
+        }
 
         if (onStart != null) {
             onStart.accept(p1, p2);

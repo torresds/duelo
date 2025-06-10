@@ -41,23 +41,25 @@ public abstract class Personagem {
         return circle;
     }
 
-    public void mover(int novaX, int novaY) {
-        this.posicaoX = novaX;
-        this.posicaoY = novaY;
-    }
-
 
     public void restoreDefense() {
         this.forcaDeDefesa = this.defesaBase;
+    }
+
+
+    public int diminuirDefesa(int ataque) {
+        int dano = ataque - this.forcaDeDefesa;
+        this.forcaDeDefesa = Math.max(0, this.forcaDeDefesa - ataque);
+        return Math.max(0, dano);
     }
 
     public void receberDano(int dano) {
         this.pontosDeVida = Math.max(0, this.pontosDeVida - dano);
     }
 
-    public int calcularDistancia(Personagem outro) {
-        int dx = Math.abs(this.posicaoX - outro.posicaoX);
-        int dy = Math.abs(this.posicaoY - outro.posicaoY);
+    public int calcularDistancia(Personagem oponente) {
+        int dx = Math.abs(this.posicaoX - oponente.posicaoX);
+        int dy = Math.abs(this.posicaoY - oponente.posicaoY);
         return Math.max(dx, dy);
     }
 
