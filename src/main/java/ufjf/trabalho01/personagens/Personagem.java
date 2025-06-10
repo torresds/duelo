@@ -11,6 +11,7 @@ public abstract class Personagem {
     protected int forcaDeAtaque;
     protected int forcaDeDefesa;
     protected int alcanceDeAtaque;
+    protected final int defesaBase;
     protected int posicaoX;
     protected int posicaoY;
     protected String tipo;
@@ -23,6 +24,7 @@ public abstract class Personagem {
         this.forcaDeAtaque = forcaDeAtaque;
         this.forcaDeDefesa = forcaDeDefesa;
         this.alcanceDeAtaque = alcanceDeAtaque;
+        this.defesaBase     = forcaDeDefesa;
         this.posicaoY = -1;
         this.posicaoX = -1;
         this.view = criarView();
@@ -44,17 +46,19 @@ public abstract class Personagem {
         this.posicaoY = novaY;
     }
 
-     public void receberDano(int dano) {
-        this.pontosDeVida -= dano;
-        if (this.pontosDeVida < 0) {
-            this.pontosDeVida = 0;
-        }
+
+    public void restoreDefense() {
+        this.forcaDeDefesa = this.defesaBase;
+    }
+
+    public void receberDano(int dano) {
+        this.pontosDeVida = Math.max(0, this.pontosDeVida - dano);
     }
 
     public int calcularDistancia(Personagem outro) {
-        int diffX = Math.abs(this.posicaoX - outro.getPosicaoX());
-        int diffY = Math.abs(this.posicaoY - outro.getPosicaoY());
-        return Math.max(diffX, diffY);
+        int dx = Math.abs(this.posicaoX - outro.posicaoX);
+        int dy = Math.abs(this.posicaoY - outro.posicaoY);
+        return Math.max(dx, dy);
     }
 
     public abstract void usarPoderEspecial(Personagem oponente);
