@@ -14,7 +14,7 @@ public class HumanPlayer extends Player {
      * @param gm o GridManager para validar e aplicar o movimento
      * @return true se moveu, false se inválido
      */
-    public boolean move(char dir, GridManager gm) {
+    public boolean move(char dir, GridManager gm, Runnable onTurnEnd) {
         int x = personagem.getPosicaoX();
         int y = personagem.getPosicaoY();
         switch (Character.toUpperCase(dir)) {
@@ -22,9 +22,9 @@ public class HumanPlayer extends Player {
             case 'B' -> y++;
             case 'E' -> x--;
             case 'D' -> x++;
-            default  -> { return false; }
+            default -> { return false; }
         }
-        return gm.movePersonagem(personagem, x, y);
+        return gm.movePersonagem(personagem, x, y, onTurnEnd);
     }
 
     public int attack(Player oponente) {

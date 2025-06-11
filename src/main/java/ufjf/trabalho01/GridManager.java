@@ -3,12 +3,14 @@ package ufjf.trabalho01;
 import static com.almasb.fxgl.dsl.FXGL.getGameScene;
 
 import com.almasb.fxgl.app.scene.GameView;
+import javafx.animation.TranslateTransition;
 import javafx.scene.Node;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 import ufjf.trabalho01.personagens.Mago;
 import ufjf.trabalho01.personagens.Personagem;
 
@@ -122,23 +124,44 @@ public class GridManager {
         return cells[y][x];
     }
 
-    public boolean movePersonagem(Personagem p, int newX, int newY) {
-        if (newX < 0 || newX >= GRID_SIZE
-                || newY < 0 || newY >= GRID_SIZE)
+    public boolean movePersonagem(Personagem p, int newX, int newY, Runnable onAnimationFinished) {
+        if (newX < 0 || newX >= GRID_SIZE || newY < 0 || newY >= GRID_SIZE) {
             return false;
-
-        Posicao origem = new Posicao(p.getPosicaoX(), p.getPosicaoY());
-        Posicao destino= new Posicao(newX, newY);
-        if (personagens.containsKey(destino))
+        }
+        if (isCellOccupied(newX, newY)) {
             return false;
+        }
 
-        cells[origem.y][origem.x].getChildren().remove(p.getView());
-        cells[newY][newX].getChildren().add(p.getView());
+        Node view = p.getView();
+        int oldX = p.getPosicaoX();
+        int oldY = p.getPosicaoY();
 
-        personagens.remove(origem);
-        personagens.put(destino, p);
-        p.setPosicaoX(newX);
-        p.setPosicaoY(newY);
+        double deltaX = (newX - oldX) * CELL_SIZE;
+        double deltaY = (newY - oldY) * CELL_SIZE;
+
+        TranslateTransition tt = new TranslateTransition(Duration.millis(350), view);
+        tt.setToX(view.getTranslateX() + deltaX);
+        tt.setToY(view.getTranslateY() + deltaY);
+
+        tt.setOnFinished(event -> {
+            view.setTranslateX(0);
+            view.setTranslateY(0);
+
+            Posicao origem = new Posicao(oldX, oldY);
+            cells[origem.y][origem.x].getChildren().remove(view);
+            cells[newY][newX].getChildren().add(view);
+
+            personagens.remove(origem);
+            personagens.put(new Posicao(newX, newY), p);
+            p.setPosicaoX(newX);
+            p.setPosicaoY(newY);
+
+            if (onAnimationFinished != null) {
+                onAnimationFinished.run();
+            }
+        });
+
+        tt.play();
         return true;
     }
 

@@ -4,168 +4,207 @@ import ufjf.trabalho01.GridManager;
 import ufjf.trabalho01.personagens.Personagem;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Comparator;
-
-import static ufjf.trabalho01.GridManager.GRID_SIZE;
+import java.util.List;
 
 public class BotPlayer extends Player {
     private Personagem oponente;
     private boolean usouPoderEspecial = false;
     private final String difficulty;
 
+    /**
+     * Estrutura interna para armazenar um estado de jogo simulado.
+     */
+    private record SimulatedState(int myHealth, int myDefense, int oppHealth, int oppDefense, int myX, int myY) {}
+
+    /**
+     * Estrutura interna para associar uma ação a sua pontuação heurística.
+     */
     private record ActionScore(String action, char direction, double score) {}
 
+
+    /**
+     * Construtor para o BotPlayer.
+     * @param nome O nome do bot.
+     * @param oponente O personagem oponente inicial.
+     * @param difficulty A dificuldade da IA ("Fácil", "Normal", "Difícil").
+     */
     public BotPlayer(String nome, Personagem oponente, String difficulty) {
         super(nome);
         this.oponente = oponente;
         this.difficulty = difficulty;
     }
 
-    public String chooseAndExecuteAction(GridManager gm, Player opponentPlayer) {
+    /**
+     * Ponto de entrada principal para a lógica da IA. Escolhe e executa a melhor ação
+     * com base na dificuldade selecionada.
+     * @param gm O gerenciador do grid para interações com o tabuleiro.
+     * @param opponentPlayer O jogador oponente.
+     * @param onTurnEnd Ação a ser executada quando o turno do bot terminar (especialmente após animações).
+     * @return Uma string de log descrevendo a ação tomada.
+     */
+    public String chooseAndExecuteAction(GridManager gm, Player opponentPlayer, Runnable onTurnEnd) {
         this.oponente = opponentPlayer.getPersonagem();
 
         return switch (difficulty) {
-            case "Fácil" -> easyAction(gm, opponentPlayer);
-            case "Normal" -> normalAction(gm, opponentPlayer);
-            case "Difícil" -> hardAction(gm, opponentPlayer);
-            default -> normalAction(gm, opponentPlayer);
+            case "Fácil" -> easyAction(gm, opponentPlayer, onTurnEnd);
+            case "Normal" -> normalAction(gm, opponentPlayer, onTurnEnd);
+            case "Difícil" -> hardAction(gm, opponentPlayer, onTurnEnd);
+            default -> normalAction(gm, opponentPlayer, onTurnEnd);
         };
     }
 
-    // --- NÍVEL FÁCIL ---
-    private String easyAction(GridManager gm, Player opponentPlayer) {
+    /**
+     * Lógica para a dificuldade "Fácil". Ataca se estiver no alcance, senão se aproxima.
+     * @param gm O gerenciador do grid.
+     * @param opponentPlayer O jogador oponente.
+     * @param onTurnEnd O callback de final de turno.
+     * @return Uma string de log.
+     */
+    private String easyAction(GridManager gm, Player opponentPlayer, Runnable onTurnEnd) {
         if (personagem.calcularDistancia(oponente) <= personagem.getAlcanceDeAtaque()) {
-            return attack(opponentPlayer);
+            String log = attack(opponentPlayer);
+            onTurnEnd.run();
+            return log;
         } else {
-            moveTowardsOpponent(gm);
-            return getNome() + " se aproximou do oponente.";
+            moveTowardsOpponent(gm, onTurnEnd);
+            return getNome() + " está se aproximando do oponente...";
         }
     }
 
-    // --- NÍVEL NORMAL ---
-    private String normalAction(GridManager gm, Player opponentPlayer) {
+    /**
+     * Lógica para a dificuldade "Normal". Usa poderes especiais sob certas condições.
+     * @param gm O gerenciador do grid.
+     * @param opponentPlayer O jogador oponente.
+     * @param onTurnEnd O callback de final de turno.
+     * @return Uma string de log.
+     */
+    private String normalAction(GridManager gm, Player opponentPlayer, Runnable onTurnEnd) {
         if ("Guerreiro".equals(personagem.getTipo()) && !usouPoderEspecial && personagem.calcularDistancia(oponente) <= 1) {
             usouPoderEspecial = true;
-            return personagem.usarPoderEspecial(oponente);
+            String log = personagem.usarPoderEspecial(oponente);
+            onTurnEnd.run();
+            return log;
         }
         if ("Mago".equals(personagem.getTipo()) && personagem.getPontosDeVida() < 40 && oponente.getPontosDeVida() > 60) {
-            return personagem.usarPoderEspecial(oponente);
+            String log = personagem.usarPoderEspecial(oponente);
+            onTurnEnd.run();
+            return log;
         }
-        return easyAction(gm, opponentPlayer);
+        return easyAction(gm, opponentPlayer, onTurnEnd);
     }
 
-    // --- NÍVEL DIFÍCIL ---
-    private String hardAction(GridManager gm, Player opponentPlayer) {
-        List<ActionScore> possibleActions = new ArrayList<>();
-
+    /**
+     * Lógica para a dificuldade "Difícil". Usa uma IA tática com análise de risco (Minimax de 1 nível).
+     * @param gm O gerenciador do grid.
+     * @param opponentPlayer O jogador oponente.
+     * @param onTurnEnd O callback de final de turno.
+     * @return Uma string de log.
+     */
+    private String hardAction(GridManager gm, Player opponentPlayer, Runnable onTurnEnd) {
+        // Instinto Finalizador: Se uma ação garante a vitória, execute-a.
         if (personagem.calcularDistancia(oponente) <= personagem.getAlcanceDeAtaque()) {
             if (oponente.getPontosDeDefesa() + oponente.getPontosDeVida() <= personagem.getForcaDeAtaque()) {
+                onTurnEnd.run();
                 return attack(opponentPlayer);
             }
         }
-
         if ("Guerreiro".equals(personagem.getTipo()) && !usouPoderEspecial && personagem.calcularDistancia(oponente) <= 1) {
-            if (oponente.getPontosDeDefesa() + oponente.getPontosDeVida() <= 30) { // Ataque do poder é 30
+            if (oponente.getPontosDeDefesa() + oponente.getPontosDeVida() <= 30) {
                 usouPoderEspecial = true;
-                return personagem.usarPoderEspecial(oponente);
+                String log = personagem.usarPoderEspecial(oponente);
+                onTurnEnd.run();
+                return log;
             }
         }
 
-        int currentX = personagem.getPosicaoX();
-        int currentY = personagem.getPosicaoY();
+        List<ActionScore> possibleActions = new ArrayList<>();
+        char[] directions = {'C', 'B', 'E', 'D'};
 
-        // 1. Avaliar ATAQUE
+        // Avalia todas as ações possíveis considerando a melhor resposta do oponente
         if (personagem.calcularDistancia(oponente) <= personagem.getAlcanceDeAtaque()) {
-            double score = evaluateActionWithOpponentResponse(gm, "ATTACK", ' ');
-            possibleActions.add(new ActionScore("ATTACK", ' ', score));
+            possibleActions.add(new ActionScore("ATTACK", ' ', evaluateActionWithOpponentResponse(gm, "ATTACK", ' ')));
         }
-
-        // 2. Avaliar DEFESA
-        double defenseScore = evaluateActionWithOpponentResponse(gm, "DEFEND", ' ');
-        possibleActions.add(new ActionScore("DEFEND", ' ', defenseScore));
-
-        // 3. Avaliar PODER ESPECIAL
+        possibleActions.add(new ActionScore("DEFEND", ' ', evaluateActionWithOpponentResponse(gm, "DEFEND", ' ')));
         if (!usouPoderEspecial || "Mago".equals(personagem.getTipo())) {
             double powerScore = evaluateActionWithOpponentResponse(gm, "POWER", ' ');
             if (powerScore > Double.MIN_VALUE + 1) {
                 possibleActions.add(new ActionScore("POWER", ' ', powerScore));
             }
         }
-
-        // 4. Avaliar MOVIMENTO
-        char[] directions = {'C', 'B', 'E', 'D'};
         for (char dir : directions) {
             if (isValidMove(gm, dir)) {
-                double moveScore = evaluateActionWithOpponentResponse(gm, "MOVE", dir);
-                possibleActions.add(new ActionScore("MOVE", dir, moveScore));
+                possibleActions.add(new ActionScore("MOVE", dir, evaluateActionWithOpponentResponse(gm, "MOVE", dir)));
             }
         }
 
-        // 5. Escolher a melhor ação com base na análise de risco
+        // Escolhe a melhor ação com base na análise de risco
         ActionScore bestAction = possibleActions.stream()
                 .max(Comparator.comparingDouble(ActionScore::score))
-                .orElse(new ActionScore("DEFEND", ' ', -9999)); // Ação padrão
+                .orElse(new ActionScore("DEFEND", ' ', -9999));
 
-        // 6. Executar a melhor ação
+        // Executa a melhor ação
         switch (bestAction.action()) {
             case "ATTACK":
+                onTurnEnd.run();
                 return attack(opponentPlayer);
             case "POWER":
                 if ("Guerreiro".equals(personagem.getTipo()) || "Arqueiro".equals(personagem.getTipo())) {
                     usouPoderEspecial = true;
                 }
-                return personagem.usarPoderEspecial(oponente);
+                String log = personagem.usarPoderEspecial(oponente);
+                onTurnEnd.run();
+                return log;
             case "MOVE":
                 int x = personagem.getPosicaoX();
                 int y = personagem.getPosicaoY();
                 switch (Character.toUpperCase(bestAction.direction())) {
-                    case 'C' -> y--;
-                    case 'B' -> y++;
-                    case 'E' -> x--;
-                    case 'D' -> x++;
+                    case 'C' -> y--; case 'B' -> y++;
+                    case 'E' -> x--; case 'D' -> x++;
                 }
-                gm.movePersonagem(personagem, x, y);
+                gm.movePersonagem(personagem, x, y, onTurnEnd);
                 return getNome() + " moveu-se taticamente.";
             case "DEFEND":
             default:
                 personagem.restoreDefense();
+                onTurnEnd.run();
                 return getNome() + " está em postura defensiva!";
         }
     }
 
     /**
-     * Simula uma ação do Bot, e para o estado resultante, simula algumas respostas do oponente, pegando o pior resultado para o Bot.
+     * Avalia uma ação do bot, simulando também a melhor resposta do oponente a essa ação.
+     * @param gm O gerenciador do grid.
+     * @param botAction A ação do bot a ser avaliada.
+     * @param direction A direção, se a ação for de movimento.
+     * @return A pontuação do pior cenário possível para o bot após a resposta do oponente.
      */
     private double evaluateActionWithOpponentResponse(GridManager gm, String botAction, char direction) {
         SimulatedState stateAfterBotMove = simulateBotAction(botAction, direction);
-
         double worstScoreForBot = Double.MAX_VALUE;
-
         String[] opponentActions = {"ATTACK", "DEFEND", "POWER"};
 
-        for(String oppAction : opponentActions){
+        for (String oppAction : opponentActions) {
             SimulatedState finalState = simulateOpponentAction(stateAfterBotMove, oppAction);
             double finalScore = evaluateState(finalState);
-            if(finalScore < worstScoreForBot){
+            if (finalScore < worstScoreForBot) {
                 worstScoreForBot = finalScore;
             }
         }
         return worstScoreForBot;
     }
 
-
     /**
-     * Avalia um estado de jogo, dando mais peso a certos fatores dependendo do contexto (vida baixa, etc).
+     * Função heurística que atribui uma pontuação a um estado de jogo simulado.
+     * @param state O estado do jogo a ser avaliado.
+     * @return Uma pontuação numérica representando a vantagem do bot naquele estado.
      */
     private double evaluateState(SimulatedState state) {
-        // --- Pesos Dinâmicos ---
         double healthWeight = 2.0;
         if (state.myHealth < 35) {
             healthWeight = 3.0;
         }
 
-        // Fator 1: Vantagem de Vida e Defesa (Pontos de Vida Efetivos)
         if (state.oppHealth <= 0) return Double.MAX_VALUE;
         if (state.myHealth <= 0) return Double.MIN_VALUE;
 
@@ -173,21 +212,22 @@ public class BotPlayer extends Player {
         double oppEffectiveHealth = state.oppHealth + (state.oppDefense * 0.7);
         double healthScore = (myEffectiveHealth - oppEffectiveHealth) * healthWeight;
 
-        // Fator 2: Posicionamento Tático (Lógica mantida, pois já é robusta)
         double positionScore = 0;
         int dist = Math.max(Math.abs(state.myX - oponente.getPosicaoX()), Math.abs(state.myY - oponente.getPosicaoY()));
         boolean iAmInRange = dist <= personagem.getAlcanceDeAtaque();
         if ("Guerreiro".equals(personagem.getTipo())) positionScore -= dist * 2;
-        else if(iAmInRange) positionScore += dist; else positionScore -= dist * 3;
+        else if (iAmInRange) positionScore += dist;
+        else positionScore -= dist * 3;
 
         return healthScore + positionScore;
     }
 
-
-    // --- MÉTODOS DE SIMULAÇÃO E AUXILIARES ---
-
-    private record SimulatedState(int myHealth, int myDefense, int oppHealth, int oppDefense, int myX, int myY) {}
-
+    /**
+     * Simula o resultado de uma ação potencial do bot para gerar um estado futuro.
+     * @param action A ação a ser simulada ("ATTACK", "DEFEND", "POWER", "MOVE").
+     * @param direction A direção do movimento (se a ação for "MOVE").
+     * @return Um objeto SimulatedState representando o resultado da ação.
+     */
     private SimulatedState simulateBotAction(String action, char direction) {
         int myHealth = personagem.getPontosDeVida();
         int myDefense = personagem.getPontosDeDefesa();
@@ -238,22 +278,25 @@ public class BotPlayer extends Player {
                 break;
             }
         }
-
         if (myHealth < 0) myHealth = 0;
         if (oppHealth < 0) oppHealth = 0;
-
         return new SimulatedState(myHealth, myDefense, oppHealth, oppDefense, myX, myY);
     }
 
+    /**
+     * Simula a resposta do oponente a um estado de jogo hipotético.
+     * @param initialState O estado do jogo DEPOIS da ação simulada do bot.
+     * @param oppAction A ação que o oponente está simulando.
+     * @return Um objeto SimulatedState representando o resultado final.
+     */
     private SimulatedState simulateOpponentAction(SimulatedState initialState, String oppAction) {
         int myHealth = initialState.myHealth();
         int myDefense = initialState.myDefense();
         int oppHealth = initialState.oppHealth();
         int oppDefense = initialState.oppDefense();
         int myX = initialState.myX();
-        int myY = initialState.myY();
 
-        int dist = Math.max(Math.abs(myX - oponente.getPosicaoX()), Math.abs(myY - oponente.getPosicaoY()));
+        int dist = Math.max(Math.abs(myX - oponente.getPosicaoX()), Math.abs(initialState.myY() - oponente.getPosicaoY()));
 
         switch (oppAction) {
             case "ATTACK":
@@ -264,15 +307,13 @@ public class BotPlayer extends Player {
                     myHealth -= (damage - absorbed);
                 }
                 break;
-
             case "DEFEND":
                 oppDefense = oponente.getPontosDeDefesaMax();
                 break;
-
             case "POWER":
                 switch (oponente.getTipo()) {
                     case "Guerreiro":
-                        if (dist <= 1) { // Alcance do Guerreiro é 1
+                        if (dist <= 1) {
                             int damage = 30;
                             int absorbed = Math.min(damage, myDefense);
                             myDefense -= absorbed;
@@ -289,13 +330,17 @@ public class BotPlayer extends Player {
                 }
                 break;
         }
-
         if (myHealth < 0) myHealth = 0;
         if (oppHealth < 0) oppHealth = 0;
-
-        return new SimulatedState(myHealth, myDefense, oppHealth, oppDefense, myX, myY);
+        return new SimulatedState(myHealth, myDefense, oppHealth, oppDefense, myX, initialState.myY());
     }
 
+    /**
+     * Verifica se um movimento em uma determinada direção é válido (dentro do grid e para uma célula vazia).
+     * @param gm O gerenciador do grid.
+     * @param dir A direção do movimento ('C', 'B', 'E', 'D').
+     * @return true se o movimento for válido, false caso contrário.
+     */
     private boolean isValidMove(GridManager gm, char dir) {
         int x = personagem.getPosicaoX();
         int y = personagem.getPosicaoY();
@@ -305,13 +350,17 @@ public class BotPlayer extends Player {
             case 'E' -> x--;
             case 'D' -> x++;
         }
-
-        if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+        if (x < 0 || x >= GridManager.GRID_SIZE || y < 0 || y >= GridManager.GRID_SIZE) {
             return false;
         }
         return !gm.isCellOccupied(x, y);
     }
 
+    /**
+     * Executa a ação de ataque do bot contra o oponente.
+     * @param opponentPlayer O jogador oponente.
+     * @return Uma string de log descrevendo o ataque.
+     */
     public String attack(Player opponentPlayer) {
         Personagem alvo = opponentPlayer.getPersonagem();
         int danoTotal = personagem.getForcaDeAtaque();
@@ -319,27 +368,30 @@ public class BotPlayer extends Player {
         return getNome() + " atacou " + alvo.getNome() + " com força de " + danoTotal + ".";
     }
 
-    private void moveTowardsOpponent(GridManager gm) {
+    /**
+     * Move o bot em direção ao oponente. Usado nas dificuldades mais fáceis.
+     * @param gm O gerenciador do grid.
+     * @param onTurnEnd O callback de final de turno a ser passado para o método de movimento.
+     */
+    private void moveTowardsOpponent(GridManager gm, Runnable onTurnEnd) {
         int x = personagem.getPosicaoX();
         int y = personagem.getPosicaoY();
         int ex = oponente.getPosicaoX();
         int ey = oponente.getPosicaoY();
-
         int currentX = x;
-        int currentY = y;
 
         if (x < ex) x++;
         else if (x > ex) x--;
         else if (y < ey) y++;
         else if (y > ey) y--;
 
-        if(!gm.movePersonagem(personagem, x, y)){
-            if(currentX < ex || currentX > ex){
-                if(currentY < ey) gm.movePersonagem(personagem, currentX, currentY + 1);
-                else gm.movePersonagem(personagem, currentX, currentY - 1);
+        if (!gm.movePersonagem(personagem, x, y, onTurnEnd)) {
+            if (currentX < ex || currentX > ex) {
+                if (y < ey) gm.movePersonagem(personagem, currentX, y + 1, onTurnEnd);
+                else gm.movePersonagem(personagem, currentX, y - 1, onTurnEnd);
             } else {
-                if(currentX < ex) gm.movePersonagem(personagem, currentX + 1, currentY);
-                else gm.movePersonagem(personagem, currentX - 1, currentY);
+                if (x < ex) gm.movePersonagem(personagem, x + 1, y, onTurnEnd);
+                else gm.movePersonagem(personagem, x - 1, y, onTurnEnd);
             }
         }
     }

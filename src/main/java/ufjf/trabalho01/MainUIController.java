@@ -73,7 +73,7 @@ public class MainUIController {
         BotPlayer bot = (BotPlayer) turnManager.getJogadorAtual();
         Player oponente = turnManager.getNextPlayer();
 
-        String logMessage = bot.chooseAndExecuteAction(gridManager, oponente);
+        String logMessage = bot.chooseAndExecuteAction(gridManager, oponente, this::endTurnAfterCheck);
         lblLog.setText(logMessage);
 
         if (checkVictory()) return;
@@ -89,9 +89,14 @@ public class MainUIController {
         if (result.isEmpty() || result.get().isBlank()) return;
 
         char dir = result.get().toUpperCase().charAt(0);
-        boolean ok = ((HumanPlayer) turnManager.getJogadorAtual()).move(dir, gridManager);
-        lblLog.setText(ok ? "Movimentou para " + result.get().toUpperCase() : "Movimento inválido!");
-        if (ok) endTurn();
+        boolean moveStarted = ((HumanPlayer) turnManager.getJogadorAtual()).move(dir, gridManager, this::endTurnAfterCheck);
+
+        if (!moveStarted) {
+            lblLog.setText("Movimento inválido!");
+        } else {
+            lblLog.setText("Movendo...");
+            setButtonsDisabled(true);
+        }
     }
 
     @FXML
@@ -126,6 +131,12 @@ public class MainUIController {
 
         if (checkVictory()) return;
         endTurn();
+    }
+
+    private void endTurnAfterCheck() {
+        if (!checkVictory()) {
+            endTurn();
+        }
     }
 
     private void endTurn() {
