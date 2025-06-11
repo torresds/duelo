@@ -9,7 +9,8 @@ public abstract class Personagem {
     protected String nome;
     protected int pontosDeVida = 100;
     protected int forcaDeAtaque;
-    protected int forcaDeDefesa;
+    protected int pontosDeDefesa;
+    protected final int pontosDeDefesaMax;
     protected int alcanceDeAtaque;
     protected final int defesaBase;
     protected int posicaoX;
@@ -22,7 +23,10 @@ public abstract class Personagem {
         this.tipo = tipo;
         this.nome = nome;
         this.forcaDeAtaque = forcaDeAtaque;
-        this.forcaDeDefesa = forcaDeDefesa;
+
+        this.pontosDeDefesaMax = forcaDeDefesa;
+        this.pontosDeDefesa = forcaDeDefesa;
+
         this.alcanceDeAtaque = alcanceDeAtaque;
         this.defesaBase     = forcaDeDefesa;
         this.posicaoY = -1;
@@ -41,20 +45,20 @@ public abstract class Personagem {
         return circle;
     }
 
-
     public void restoreDefense() {
-        this.forcaDeDefesa = this.defesaBase;
+        this.pontosDeDefesa = this.pontosDeDefesaMax;
     }
 
+    public void sofrerDano(int danoBruto) {
+        int danoAbsorvidoPelaDefesa = Math.min(danoBruto, this.pontosDeDefesa);
+        this.pontosDeDefesa -= danoAbsorvidoPelaDefesa;
 
-    public int diminuirDefesa(int ataque) {
-        int dano = ataque - this.forcaDeDefesa;
-        this.forcaDeDefesa = Math.max(0, this.forcaDeDefesa - ataque);
-        return Math.max(0, dano);
-    }
+        int danoRestante = danoBruto - danoAbsorvidoPelaDefesa;
+        this.pontosDeVida -= danoRestante;
 
-    public void receberDano(int dano) {
-        this.pontosDeVida = Math.max(0, this.pontosDeVida - dano);
+        if (this.pontosDeVida < 0) {
+            this.pontosDeVida = 0;
+        }
     }
 
     public int calcularDistancia(Personagem oponente) {
@@ -63,7 +67,7 @@ public abstract class Personagem {
         return Math.max(dx, dy);
     }
 
-    public abstract void usarPoderEspecial(Personagem oponente);
+    public abstract String usarPoderEspecial(Personagem oponente);
 
     // Getters e Setters
     public String getNome() {
@@ -78,9 +82,8 @@ public abstract class Personagem {
         return forcaDeAtaque;
     }
 
-    public int getForcaDeDefesa() {
-        return forcaDeDefesa;
-    }
+    public int getPontosDeDefesa() { return pontosDeDefesa; }
+    public int getPontosDeDefesaMax() { return pontosDeDefesaMax; }
 
     public int getAlcanceDeAtaque() {
         return alcanceDeAtaque;

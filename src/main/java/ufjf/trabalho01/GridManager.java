@@ -147,4 +147,12 @@ public class GridManager {
             for (int x = 0; x < GRID_SIZE; x++)
                 cells[y][x].setStyle("");
     }
+
+    public boolean isCellOccupied(int x, int y) {
+        if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+            return true;
+        }
+        Posicao pos = new Posicao(x, y);
+        return personagens.containsKey(pos);
+    }
 }

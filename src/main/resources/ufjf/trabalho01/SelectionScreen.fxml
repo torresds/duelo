@@ -1,27 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-
-<AnchorPane xmlns:fx="http://javafx.com/fxml"
+<BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="ufjf.trabalho01.SelectionController"
-            prefWidth="400" prefHeight="300">
-    <Label text="Duelo de Personagens" layoutX="120" layoutY="20" style="-fx-font-size:18px;"/>
+            prefWidth="1024" prefHeight="600"
+            style="-fx-background-color: linear-gradient(to bottom right, #2c3e50, #4ca1af);">
 
-    <!-- Jogador 1 -->
-    <Label text="Jogador 1:" layoutX="20" layoutY="70"/>
-    <TextField fx:id="txtName1" promptText="Nome" layoutX="100" layoutY="65" prefWidth="200"/>
-    <ComboBox fx:id="cbClass1" layoutX="100" layoutY="100" prefWidth="200"/>
+    <!-- Define ToggleGroup sem elemento de UI -->
+    <fx:define>
+        <ToggleGroup fx:id="modeGroup" />
+    </fx:define>
 
-    <!-- Jogador 2 -->
-    <Label text="Jogador 2:" layoutX="20" layoutY="150"/>
-    <TextField fx:id="txtName2" promptText="Nome" layoutX="100" layoutY="145" prefWidth="200"/>
-    <ComboBox fx:id="cbClass2" layoutX="100" layoutY="180" prefWidth="200"/>
+    <!-- Centro: Conteúdo principal -->
+    <center>
+        <VBox alignment="CENTER" spacing="20" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets top="40" bottom="40" left="60" right="60"/>
+            </padding>
 
-    <Button text="Iniciar Duelo" onAction="#onStart"
-            layoutX="150" layoutY="240" prefWidth="100"/>
-</AnchorPane>
+            <!-- Título -->
+            <Label text="Duelo de Personagens"
+                   style="-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;"/>
+
+            <!-- Modo de Jogo -->
+            <HBox spacing="30" alignment="CENTER">
+                <RadioButton fx:id="rbPvP"
+                             text="Player vs Player"
+                             toggleGroup="$modeGroup"
+                             selected="true"
+                             style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+                <RadioButton fx:id="rbPvC"
+                             text="Player vs Bot"
+                             toggleGroup="$modeGroup"
+                             style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+            </HBox>
+
+            <!-- Configuração de Jogadores -->
+            <GridPane hgap="60" vgap="20" alignment="CENTER">
+                <!-- Jogador 1 -->
+                <VBox spacing="8" alignment="CENTER">
+                    <Label text="Jogador 1" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <TextField fx:id="txtName1"
+                               promptText="Nome do Jogador"
+                               maxWidth="200"/>
+                    <ComboBox fx:id="cbClass1" promptText="Classe" prefWidth="200">
+                        <items>
+                            <FXCollections fx:factory="observableArrayList">
+                                <String fx:value="Arqueiro"/>
+                                <String fx:value="Guerreiro"/>
+                                <String fx:value="Mago"/>
+                            </FXCollections>
+                        </items>
+                    </ComboBox>
+                </VBox>
+
+                <!-- Jogador 2 / Bot -->
+                <VBox spacing="8" alignment="CENTER" GridPane.columnIndex="1">
+                    <Label text="Oponente" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                    <TextField fx:id="txtName2"
+                               promptText="Nome do Oponente"
+                               maxWidth="200"
+                               disable="true"/>
+                    <ComboBox fx:id="cbClass2" promptText="Classe" prefWidth="200" disable="true">
+                        <items>
+                            <FXCollections fx:factory="observableArrayList">
+                                <String fx:value="Arqueiro"/>
+                                <String fx:value="Guerreiro"/>
+                                <String fx:value="Mago"/>
+                            </FXCollections>
+                        </items>
+                    </ComboBox>
+                    <ComboBox fx:id="cbDifficulty" promptText="Dificuldade do Bot" prefWidth="200" visible="false">
+                        <items>
+                            <FXCollections fx:factory="observableArrayList">
+                                <String fx:value="Fácil"/>
+                                <String fx:value="Médio"/>
+                                <String fx:value="Difícil"/>
+                            </FXCollections>
+                        </items>
+                    </ComboBox>
+                </VBox>
+            </GridPane>
+
+            <!-- Botão Iniciar -->
+            <Button text="Iniciar Duelo"
+                    fx:id="btnStart"
+                    onAction="#onStart"
+                    style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-size: 16px;"
+                    prefWidth="180"/>
+        </VBox>
+    </center>
+</BorderPane>

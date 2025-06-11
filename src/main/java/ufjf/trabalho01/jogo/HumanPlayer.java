@@ -29,11 +29,14 @@ public class HumanPlayer extends Player {
 
     public int attack(Player oponente) {
         int dist = personagem.calcularDistancia(oponente.getPersonagem());
-        if (dist > personagem.getAlcanceDeAtaque())
+        if (dist > personagem.getAlcanceDeAtaque()) {
             return -1;
-        int dano = oponente.getPersonagem().diminuirDefesa(personagem.getForcaDeAtaque());
-        oponente.getPersonagem().receberDano(dano);
-        return dano;
+        }
+
+        int danoTotal = personagem.getForcaDeAtaque();
+        oponente.getPersonagem().sofrerDano(danoTotal);
+
+        return danoTotal;
     }
 
     public void defend() {
@@ -41,8 +44,6 @@ public class HumanPlayer extends Player {
     }
 
     public String usePower(Player oponente) {
-        personagem.usarPoderEspecial(oponente.getPersonagem());
-        return personagem.getNome() + " usou poder!";
+        return personagem.usarPoderEspecial(oponente.getPersonagem());
     }
-
 }

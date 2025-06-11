@@ -1,9 +1,7 @@
 package ufjf.trabalho01;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import ufjf.trabalho01.jogo.BotPlayer;
 import ufjf.trabalho01.jogo.HumanPlayer;
 import ufjf.trabalho01.jogo.Player;
@@ -21,9 +19,12 @@ public class SelectionController {
     @FXML private TextField txtName2;
     @FXML private ComboBox<String> cbClass1;
     @FXML private ComboBox<String> cbClass2;
+    @FXML private ComboBox<String> cbDifficulty;
+    @FXML private RadioButton rbPvP;
+    @FXML private RadioButton rbPvC;
+    @FXML private ToggleGroup modeGroup;
 
     private BiConsumer<Player, Player> onStart;
-
 
     public void setOnStart(BiConsumer<Player, Player> onStart) {
         this.onStart = onStart;
@@ -31,39 +32,72 @@ public class SelectionController {
 
     @FXML
     public void initialize() {
-        cbClass1.getItems().addAll("Arqueiro", "Guerreiro", "Mago");
-        cbClass2.getItems().addAll("Arqueiro", "Guerreiro", "Mago", "Bot");
+        modeGroup.selectedToggleProperty().addListener((observable, oldToggle, newToggle) -> {
+            if (newToggle == rbPvC) {
+                txtName2.setText("Bot");
+                txtName2.setDisable(true);
+
+                cbClass2.setDisable(false);
+
+                cbDifficulty.setVisible(true);
+            } else {
+                txtName2.clear();
+                txtName2.setDisable(false);
+                cbClass2.setDisable(false);
+                cbDifficulty.setVisible(false);
+            }
+        });
+
         cbClass1.getSelectionModel().selectFirst();
         cbClass2.getSelectionModel().selectFirst();
+        cbDifficulty.getSelectionModel().selectFirst();
+
+        rbPvP.setSelected(true);
+        txtName2.setDisable(false);
+        cbClass2.setDisable(false);
+        cbDifficulty.setVisible(false);
     }
+
 
     @FXML
     private void onStart() {
         String nome1 = txtName1.getText().trim();
-        String nome2 = txtName2.getText().trim();
-
-        if (nome1.isEmpty() || nome2.isEmpty()) {
-            new Alert(Alert.AlertType.WARNING, "Por favor, preencha os nomes de ambos os jogadores.")
-                    .showAndWait();
+        if (nome1.isEmpty()) {
+            new Alert(Alert.AlertType.WARNING, "Por favor, preencha o nome do Jogador 1.").showAndWait();
             return;
         }
-        
+
         Player p1 = new HumanPlayer(nome1);
         Personagem c1 = createCharacter(cbClass1.getValue(), nome1);
         p1.setPersonagem(c1);
 
         Player p2;
-        Personagem c2;
-        if (cbClass2.getValue() == "Bot"){
-            p2 = new BotPlayer(nome2,c1);
-            int indiceAleatorio = new Random().nextInt(3);
-            c2 = createCharacter(cbClass1.getItems().get(indiceAleatorio), nome2);
+
+        if (rbPvC.isSelected()) {
+            String botName = "Bot";
+            String difficulty = cbDifficulty.getValue();
+            p2 = new BotPlayer(botName, c1, difficulty);
+
+            String botClass = cbClass2.getValue();
+            if (botClass == null) {
+                new Alert(Alert.AlertType.WARNING, "Por favor, selecione uma classe para o Bot.").showAndWait();
+                return;
+            }
+            Personagem c2 = createCharacter(botClass, botName);
             p2.setPersonagem(c2);
-        }        
-        
-        else {
-            c2 = createCharacter(cbClass2.getValue(), nome2);
+
+        } else {
+            String nome2 = txtName2.getText().trim();
+            if (nome2.isEmpty()) {
+                new Alert(Alert.AlertType.WARNING, "Por favor, preencha o nome do Jogador 2.").showAndWait();
+                return;
+            }
+            if (cbClass2.getValue() == null) {
+                new Alert(Alert.AlertType.WARNING, "Por favor, selecione uma classe para o Jogador 2.").showAndWait();
+                return;
+            }
             p2 = new HumanPlayer(nome2);
+            Personagem c2 = createCharacter(cbClass2.getValue(), nome2);
             p2.setPersonagem(c2);
         }
 
