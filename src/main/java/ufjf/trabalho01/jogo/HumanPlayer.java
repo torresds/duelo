@@ -14,7 +14,7 @@ public class HumanPlayer extends Player {
      * @param gm o GridManager para validar e aplicar o movimento
      * @return true se moveu, false se inválido
      */
-    public boolean move(char dir, GridManager gm) {
+    public boolean move(char dir, GridManager gm, Runnable onTurnEnd) {
         int x = personagem.getPosicaoX();
         int y = personagem.getPosicaoY();
         switch (Character.toUpperCase(dir)) {
@@ -22,18 +22,21 @@ public class HumanPlayer extends Player {
             case 'B' -> y++;
             case 'E' -> x--;
             case 'D' -> x++;
-            default  -> { return false; }
+            default -> { return false; }
         }
-        return gm.movePersonagem(personagem, x, y);
+        return gm.movePersonagem(personagem, x, y, onTurnEnd);
     }
 
     public int attack(Player oponente) {
         int dist = personagem.calcularDistancia(oponente.getPersonagem());
-        if (dist > personagem.getAlcanceDeAtaque())
+        if (dist > personagem.getAlcanceDeAtaque()) {
             return -1;
-        int dano = oponente.getPersonagem().diminuirDefesa(personagem.getForcaDeAtaque());
-        oponente.getPersonagem().receberDano(dano);
-        return dano;
+        }
+
+        int danoTotal = personagem.getForcaDeAtaque();
+        oponente.getPersonagem().sofrerDano(danoTotal);
+
+        return danoTotal;
     }
 
     public void defend() {
@@ -41,8 +44,6 @@ public class HumanPlayer extends Player {
     }
 
     public String usePower(Player oponente) {
-        personagem.usarPoderEspecial(oponente.getPersonagem());
-        return personagem.getNome() + " usou poder!";
+        return personagem.usarPoderEspecial(oponente.getPersonagem());
     }
-
 }

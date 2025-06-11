@@ -1,11 +1,15 @@
 package ufjf.trabalho01;
 
+import javafx.application.Platform;
+import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.GridPane;
+import javafx.util.Duration;
+import ufjf.trabalho01.jogo.BotPlayer;
 import ufjf.trabalho01.jogo.HumanPlayer;
 import ufjf.trabalho01.jogo.Player;
 import ufjf.trabalho01.jogo.TurnManager;
@@ -32,15 +36,12 @@ public class MainUIController {
 
     private GridManager gridManager;
     private TurnManager turnManager;
-    private List<Player> jogadores;
-
 
     public void initPlayers(Player p1, Player p2) {
         gridManager = new GridManager();
         gridManager.generateGrid(gridPane);
 
-        jogadores   = List.of(p1, p2);
-        turnManager = new TurnManager(jogadores);
+        turnManager = new TurnManager(List.of(p1, p2));
 
         gridManager.adicionarPersonagem(p1.getPersonagem(), 0, 0);
         gridManager.adicionarPersonagem(
@@ -49,7 +50,34 @@ public class MainUIController {
                 GridManager.GRID_SIZE - 1
         );
 
+        processTurn();
+    }
+
+    private void processTurn() {
         updateTurnDisplay();
+        Player currentPlayer = turnManager.getJogadorAtual();
+
+        if (currentPlayer instanceof BotPlayer) {
+            setButtonsDisabled(true);
+            lblLog.setText(currentPlayer.getNome() + " está pensando...");
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
+            pause.setOnFinished(event -> executeBotTurn());
+            pause.play();
+        } else {
+            setButtonsDisabled(false);
+        }
+    }
+
+    private void executeBotTurn() {
+        BotPlayer bot = (BotPlayer) turnManager.getJogadorAtual();
+        Player oponente = turnManager.getNextPlayer();
+
+        String logMessage = bot.chooseAndExecuteAction(gridManager, oponente, this::endTurnAfterCheck);
+        lblLog.setText(logMessage);
+
+        if (checkVictory()) return;
+        endTurn();
     }
 
     @FXML
@@ -61,26 +89,27 @@ public class MainUIController {
         if (result.isEmpty() || result.get().isBlank()) return;
 
         char dir = result.get().toUpperCase().charAt(0);
-        boolean ok = ((HumanPlayer) turnManager.getJogadorAtual()).move(dir, gridManager);
-        lblLog.setText(ok
-                ? "Movimentou para " + result.get().toUpperCase()
-                : "Movimento inválido!");
-        if (ok) endTurn();
+        boolean moveStarted = ((HumanPlayer) turnManager.getJogadorAtual()).move(dir, gridManager, this::endTurnAfterCheck);
+
+        if (!moveStarted) {
+            lblLog.setText("Movimento inválido!");
+        } else {
+            lblLog.setText("Movendo...");
+            setButtonsDisabled(true);
+        }
     }
 
     @FXML
     private void onAtacar() {
-        Player atacante = turnManager.getJogadorAtual();
-        Player alvo     = turnManager.getNextPlayer();
-        int dano = ((HumanPlayer) atacante).attack(alvo);
+        HumanPlayer atacante = (HumanPlayer) turnManager.getJogadorAtual();
+        Player alvo = turnManager.getNextPlayer();
+        int dano = atacante.attack(alvo);
 
         if (dano < 0) {
             lblLog.setText("Alvo fora de alcance! Vez perdida.");
-            endTurn();
-            return;
+        } else {
+            lblLog.setText(atacante.getNome() + " atacou com força de " + dano + ".");
         }
-
-        lblLog.setText(atacante.getNome() + " causou " + dano + " de dano.");
         if (checkVictory()) return;
         endTurn();
     }
@@ -95,31 +124,37 @@ public class MainUIController {
 
     @FXML
     private void onPoder() {
-        Player atacante = turnManager.getJogadorAtual();
-        Player alvo     = turnManager.getNextPlayer();
-        String msg = ((HumanPlayer) atacante).usePower(alvo);
+        HumanPlayer atacante = (HumanPlayer) turnManager.getJogadorAtual();
+        Player alvo = turnManager.getNextPlayer();
+        String msg = atacante.usePower(alvo);
         lblLog.setText(msg);
 
         if (checkVictory()) return;
         endTurn();
     }
 
-    // ——— Helpers ———
+    private void endTurnAfterCheck() {
+        if (!checkVictory()) {
+            endTurn();
+        }
+    }
 
     private void endTurn() {
         turnManager.nextTurn();
-        updateTurnDisplay();
+        processTurn();
     }
 
     private void updateTurnDisplay() {
-        Player atual    = turnManager.getJogadorAtual();
-        Personagem p    = atual.getPersonagem();
+        Player atual = turnManager.getJogadorAtual();
+        Personagem p = atual.getPersonagem();
 
         lblTurno.setText("Turno: " + atual.getNome());
-        lblNome .setText("Personagem: " + atual.getNome());
-        lblVida .setText("PV: "      + p.getPontosDeVida());
+        lblNome.setText("Personagem: " + p.getNome() + " (" + p.getTipo() + ")");
+        lblVida.setText("PV: " + p.getPontosDeVida());
         lblAtaque.setText("Ataque: " + p.getForcaDeAtaque());
-        lblDefesa.setText("Defesa: " + p.getForcaDeDefesa());
+
+        lblDefesa.setText("Defesa: " + p.getPontosDeDefesa() + "/" + p.getPontosDeDefesaMax());
+
         lblAlcance.setText("Alcance: " + p.getAlcanceDeAtaque());
 
         gridManager.clearHighlights();
@@ -128,19 +163,24 @@ public class MainUIController {
     }
 
     private boolean checkVictory() {
-        Player derrotado = turnManager.getNextPlayer();
-        if (derrotado.getPersonagem().getPontosDeVida() <= 0) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Fim de Jogo");
-            alert.setHeaderText("Vitória de " + turnManager.getJogadorAtual().getNome() + "!");
-            alert.showAndWait();
-
-            btnMover.setDisable(true);
-            btnAtacar.setDisable(true);
-            btnDefender.setDisable(true);
-            btnPoder.setDisable(true);
+        Player oponente = turnManager.getNextPlayer();
+        if (oponente.getPersonagem().getPontosDeVida() <= 0) {
+            setButtonsDisabled(true);
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Fim de Jogo");
+                alert.setHeaderText("Vitória de " + turnManager.getJogadorAtual().getNome() + "!");
+                alert.showAndWait();
+            });
             return true;
         }
         return false;
+    }
+
+    private void setButtonsDisabled(boolean disabled) {
+        btnMover.setDisable(disabled);
+        btnAtacar.setDisable(disabled);
+        btnDefender.setDisable(disabled);
+        btnPoder.setDisable(disabled);
     }
 }
