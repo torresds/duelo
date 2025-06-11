@@ -75,9 +75,6 @@ public class MainUIController {
 
         String logMessage = bot.chooseAndExecuteAction(gridManager, oponente, this::endTurnAfterCheck);
         lblLog.setText(logMessage);
-
-        if (checkVictory()) return;
-        endTurn();
     }
 
     @FXML

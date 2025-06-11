@@ -91,6 +91,17 @@ public class BotPlayer extends Player {
             onTurnEnd.run();
             return log;
         }
+        if ("Arqueiro".equals(personagem.getTipo()) && !usouPoderEspecial) {
+            int alcance = personagem.getAlcanceDeAtaque();
+            int distancia = personagem.calcularDistancia(oponente);
+
+            if (distancia == alcance + 1) {
+                usouPoderEspecial = true;
+                String log = personagem.usarPoderEspecial(oponente);
+                onTurnEnd.run();
+                return log;
+            }
+        }
         return easyAction(gm, opponentPlayer, onTurnEnd);
     }
 
@@ -102,7 +113,7 @@ public class BotPlayer extends Player {
      * @return Uma string de log.
      */
     private String hardAction(GridManager gm, Player opponentPlayer, Runnable onTurnEnd) {
-        // Instinto Finalizador: Se uma ação garante a vitória, execute-a.
+        // Instinto Finalizador
         if (personagem.calcularDistancia(oponente) <= personagem.getAlcanceDeAtaque()) {
             if (oponente.getPontosDeDefesa() + oponente.getPontosDeVida() <= personagem.getForcaDeAtaque()) {
                 onTurnEnd.run();
@@ -121,29 +132,49 @@ public class BotPlayer extends Player {
         List<ActionScore> possibleActions = new ArrayList<>();
         char[] directions = {'C', 'B', 'E', 'D'};
 
-        // Avalia todas as ações possíveis considerando a melhor resposta do oponente
+        // Avalia ação de ataque
         if (personagem.calcularDistancia(oponente) <= personagem.getAlcanceDeAtaque()) {
             possibleActions.add(new ActionScore("ATTACK", ' ', evaluateActionWithOpponentResponse(gm, "ATTACK", ' ')));
         }
-        possibleActions.add(new ActionScore("DEFEND", ' ', evaluateActionWithOpponentResponse(gm, "DEFEND", ' ')));
+
+        // Avalia ação de defesa com bônus tático para o guerreiro
+        double defendScore = evaluateActionWithOpponentResponse(gm, "DEFEND", ' ');
+        // Defender em posição de ataque é uma ótima jogada de preparação.
+        if ("Guerreiro".equals(personagem.getTipo()) && personagem.calcularDistancia(oponente) <= 1) {
+            defendScore += 40; // Bônus heurístico massivo para incentivar a defesa em combate corpo a corpo.
+        }
+        possibleActions.add(new ActionScore("DEFEND", ' ', defendScore));
+
+        // Avalia poder
         if (!usouPoderEspecial || "Mago".equals(personagem.getTipo())) {
-            double powerScore = evaluateActionWithOpponentResponse(gm, "POWER", ' ');
+            double powerScore = evaluatePowerAction(gm);
             if (powerScore > Double.MIN_VALUE + 1) {
                 possibleActions.add(new ActionScore("POWER", ' ', powerScore));
             }
         }
+
+        // Avalia movimentos
         for (char dir : directions) {
             if (isValidMove(gm, dir)) {
-                possibleActions.add(new ActionScore("MOVE", dir, evaluateActionWithOpponentResponse(gm, "MOVE", dir)));
+                int currentDist = personagem.calcularDistancia(oponente);
+                int newX = personagem.getPosicaoX(), newY = personagem.getPosicaoY();
+                switch (dir) { case 'C' -> newY--; case 'B' -> newY++; case 'E' -> newX--; case 'D' -> newX++; }
+                int futureDist = Math.max(Math.abs(newX - oponente.getPosicaoX()), Math.abs(newY - oponente.getPosicaoY()));
+
+                double score = evaluateActionWithOpponentResponse(gm, "MOVE", dir);
+
+                if ("Arqueiro".equals(personagem.getTipo()) && currentDist <= 2 && futureDist > currentDist) {
+                    score += 50; // Bônus massivo para se afastar de uma ameaça próxima
+                }
+                possibleActions.add(new ActionScore("MOVE", dir, score));
             }
         }
 
-        // Escolhe a melhor ação com base na análise de risco
         ActionScore bestAction = possibleActions.stream()
                 .max(Comparator.comparingDouble(ActionScore::score))
                 .orElse(new ActionScore("DEFEND", ' ', -9999));
 
-        // Executa a melhor ação
+        // Executa a ação
         switch (bestAction.action()) {
             case "ATTACK":
                 onTurnEnd.run();
@@ -156,8 +187,7 @@ public class BotPlayer extends Player {
                 onTurnEnd.run();
                 return log;
             case "MOVE":
-                int x = personagem.getPosicaoX();
-                int y = personagem.getPosicaoY();
+                int x = personagem.getPosicaoX(), y = personagem.getPosicaoY();
                 switch (Character.toUpperCase(bestAction.direction())) {
                     case 'C' -> y--; case 'B' -> y++;
                     case 'E' -> x--; case 'D' -> x++;
@@ -171,6 +201,7 @@ public class BotPlayer extends Player {
                 return getNome() + " está em postura defensiva!";
         }
     }
+
 
     /**
      * Avalia uma ação do bot, simulando também a melhor resposta do oponente a essa ação.
@@ -395,4 +426,27 @@ public class BotPlayer extends Player {
             }
         }
     }
+
+    private double evaluatePowerAction(GridManager gm) {
+        String tipo = personagem.getTipo();
+        switch(tipo) {
+            case "Arqueiro":
+                int alcance = personagem.getAlcanceDeAtaque();
+                int distancia = personagem.calcularDistancia(oponente);
+                if (distancia > alcance && distancia <= alcance + 1) {
+                    SimulatedState stateAfterPower = simulateBotAction("ATTACK_BOOSTED", ' ');
+                    return evaluateState(stateAfterPower);
+                }
+                return Double.MIN_VALUE;
+            case "Guerreiro":
+                double baseScore = evaluateActionWithOpponentResponse(gm, "POWER", ' ');
+                if (oponente.getPontosDeDefesa() > personagem.getForcaDeAtaque() || oponente.getPontosDeVida() < 25) {
+                    baseScore += 30;
+                }
+                return baseScore;
+            default: // Mago
+                return evaluateActionWithOpponentResponse(gm, "POWER", ' ');
+        }
+    }
+
 }

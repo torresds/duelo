@@ -88,7 +88,7 @@
                         <items>
                             <FXCollections fx:factory="observableArrayList">
                                 <String fx:value="Fácil"/>
-                                <String fx:value="Médio"/>
+                                <String fx:value="Normal"/>
                                 <String fx:value="Difícil"/>
                             </FXCollections>
                         </items>
